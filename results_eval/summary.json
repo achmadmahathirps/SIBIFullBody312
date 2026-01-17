@@ -1,0 +1,31 @@
+{
+  "num_sequences_evaluated": 1930,
+  "num_classes": 1331,
+  "topk_acc": {
+    "top1": 0.9046632124352332,
+    "top3": 0.9829015544041451,
+    "top5": 0.9937823834196892
+  },
+  "metrics": {
+    "accuracy": 0.9046632124352332,
+    "balanced_accuracy": 0.6225056269213879,
+    "macro_precision": 0.4643348234576979,
+    "macro_recall": 0.45816414141414147,
+    "macro_f1": 0.45907432956910216,
+    "micro_precision": 0.9046632124352332,
+    "micro_recall": 0.9046632124352332,
+    "micro_f1": 0.9046632124352332,
+    "weighted_precision": 0.9120845384607419,
+    "weighted_recall": 0.9046632124352332,
+    "weighted_f1": 0.9039668108545352,
+    "mcc": 0.9037332655735532,
+    "cohen_kappa": 0.9036182248187956,
+    "log_loss": 0.3362576228576743
+  },
+  "pad_len": 83,
+  "features_per_frame": 118,
+  "seed": 42,
+  "train_ratio": 0.8,
+  "val_ratio": 0.1,
+  "test_ratio": 0.1
+}
