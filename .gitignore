@@ -12,6 +12,9 @@ build/
 develop-eggs/
 dist/
 downloads/
+_csv/
+_csv (external test data)/
+_video/
 eggs/
 .eggs/
 lib/
