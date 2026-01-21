@@ -11,7 +11,7 @@ mediapipe_drawing = mediapipe.solutions.drawing_utils
 mediapipe_drawing_styles = mediapipe.solutions.drawing_styles
 
 # Set up MediaPipe Holistic model with specified parameters
-holistic = mediapipe.solutions.holistic(
+holistic = mediapipe_holistic.Holistic(
     static_image_mode=False,
     model_complexity=0,
     smooth_landmarks=True,
