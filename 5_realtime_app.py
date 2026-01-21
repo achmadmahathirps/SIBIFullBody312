@@ -97,6 +97,19 @@ def get_normalized_pose_and_hands(detection_results,
     return normalized_custom_pose, normalized_right_hand, normalized_left_hand
 
 
+def flatten_normalized_landmarks(normalized_custom_pose,
+                                 normalized_right_hand,
+                                 normalized_left_hand):
+    extracted_frame_landmarks = []
+
+    for landmark_x, landmark_y in (
+        normalized_custom_pose + normalized_right_hand + normalized_left_hand
+    ):
+        extracted_frame_landmarks.extend([landmark_x, landmark_y])
+
+    return extracted_frame_landmarks
+
+
 def draw_pose_and_hands_on_frame(output_frame, detection_results):
 
     # Filter pose landmarks to 0–16 (upper body)
