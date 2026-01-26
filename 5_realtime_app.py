@@ -584,3 +584,34 @@ def save_sequence_to_csv(sequence, label, sequence_count, output_folder):
     data_frame.to_csv(output_file, index=False, header=True)
 
     print(f"[SUCCESS] Saved : {output_file}")
+
+
+def main():
+    capture = opencv.VideoCapture(0)
+    with holistic :
+        while capture.isOpened():
+            success, frame = capture.read()
+            if not success:
+                print("Ignoring empty camera frame.")
+                continue
+        
+            frame.flags.writeable = False
+            frame = opencv.cvtColor(frame, opencv.COLOR_BGR2RGB)
+            results = holistic.process(frame)
+
+            frame.flags.writeable = True
+            frame = opencv.cvtColor(frame, opencv.COLOR_RGB2BGR)
+            mediapipe_drawing.draw_landmarks(
+                frame,
+                results.pose_landmarks,
+                mediapipe_holistic.POSE_CONNECTIONS,
+                landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
+            )
+
+            opencv.imshow('MediaPipe Holistic', opencv.flip(frame, 1))
+            if opencv.waitKey(5) & 0xFF == 27:
+                break
+    capture.release()
+
+if __name__ == "__main__":
+    main()
