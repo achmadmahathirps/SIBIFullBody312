@@ -598,10 +598,15 @@ def main():
             frame.flags.writeable = False
             frame = opencv.cvtColor(frame, opencv.COLOR_BGR2RGB)
             results = holistic.process(frame)
+
             frame.flags.writeable = True
             frame = opencv.cvtColor(frame, opencv.COLOR_RGB2BGR)
-            
-            
+            mediapipe_drawing.draw_landmarks(
+                frame,
+                results.pose_landmarks,
+                mediapipe_holistic.POSE_CONNECTIONS,
+                landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
+            )
 
             opencv.imshow('MediaPipe Holistic', opencv.flip(frame, 1))
             if opencv.waitKey(5) & 0xFF == 27:
