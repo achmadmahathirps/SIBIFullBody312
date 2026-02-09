@@ -60,6 +60,23 @@ def get_body_reference_points(mp_detected_frame):
     
     body_landmark_0_to_16 = mp_detected_frame.pose_landmarks.landmark[1:17]
 
+    left_shoulder_point = mp_detected_frame.pose_landmarks.landmark[
+        mediapipe_holistic.PoseLandmark.LEFT_SHOULDER
+    ]
+
+    right_shoulder_point = mp_detected_frame.pose_landmarks.landmark[
+        mediapipe_holistic.PoseLandmark.RIGHT_SHOULDER
+    ]
+
+    shoulder_center_point = (
+        (left_shoulder_point.x + right_shoulder_point.x) / 2,
+        (left_shoulder_point.y + right_shoulder_point.y) / 2
+    )
+
+    shoulder_width = euclidean_distance(left_shoulder_point, right_shoulder_point)
+
+    return body_landmark_0_to_16, shoulder_center_point, shoulder_width
+
 
 def get_normalized_holistic_landmarks(mp_detected_frame,
                                       body_landmark_0_to_16,
