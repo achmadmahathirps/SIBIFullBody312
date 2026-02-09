@@ -22,30 +22,57 @@ holistic = mediapipe_holistic.Holistic(
     min_tracking_confidence=0.5,
 )
 
+
+def process_frame_with_holistic(original_frame):
+    rgb_frame = opencv.cvtColor(original_frame, opencv.COLOR_BGR2RGB)
+    rgb_frame.flags.writeable = False
+    mp_detected_frame = holistic.process(rgb_frame)
+    rgb_frame.flags.writeable = True
+    frame_output = opencv.cvtColor(rgb_frame, opencv.COLOR_RGB2BGR)
+
+    return mp_detected_frame, frame_output
+
+
+def euclidean_distance(pointA, pointB):
+    euclidean_output = ((pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2) ** 0.5
+    return euclidean_output
+
+
+def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
+    zero_landmark_output = [(0, 0)] * len(landmarks)
+    normalized_landmark_output = [
+        (
+            (landmark_point.x - shoulder_center_point[0]) / shoulder_width,
+            (landmark_point.y - shoulder_center_point[1]) / shoulder_width
+        )
+        for landmark_point in landmarks
+    ]
+
+    if not landmarks or shoulder_width == 0:
+        return zero_landmark_output
+    else:
+        return normalized_landmark_output
+
+
 def main():
     capture = opencv.VideoCapture(1)
     with holistic :
         while capture.isOpened():
-            success, frame = capture.read()
+            success, original_frame = capture.read()
             if not success:
                 print("Ignoring empty camera frame.")
                 continue
-        
-            frame.flags.writeable = False
-            frame = opencv.cvtColor(frame, opencv.COLOR_BGR2RGB)
-            results = holistic.process(frame)
 
-            frame.flags.writeable = True
-            frame = opencv.cvtColor(frame, opencv.COLOR_RGB2BGR)
+            mp_detected_frame, original_frame = process_frame_with_holistic(original_frame)
 
-            # mediapipe_drawing.draw_landmarks(
-            #     frame,
-            #     results.pose_landmarks,
-            #     mediapipe_holistic.POSE_CONNECTIONS,
-            #     landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
-            # )
+            mediapipe_drawing.draw_landmarks(
+                original_frame,
+                mp_detected_frame.pose_landmarks,
+                mediapipe_holistic.POSE_CONNECTIONS,
+                landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
+            )
 
-            opencv.imshow('MediaPipe Holistic', opencv.flip(frame, 1))
+            opencv.imshow('MediaPipe Holistic', opencv.flip(original_frame, 1))
             if opencv.waitKey(5) & 0xFF == 27:
                 break
     capture.release()
