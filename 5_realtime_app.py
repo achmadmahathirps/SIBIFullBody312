@@ -54,13 +54,20 @@ def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
         return normalized_landmark_output
     
 
+def get_body_reference_points(mp_detected_frame):
+    if not mp_detected_frame.pose_landmarks:
+        return None, None, None
+    
+    body_landmark_0_to_16 = mp_detected_frame.pose_landmarks.landmark[1:17]
+
+
 def get_normalized_holistic_landmarks(mp_detected_frame,
-                                      pose_landmark_1_to_16,
+                                      body_landmark_0_to_16,
                                       shoulder_center_point,
                                       shoulder_width):
     
-    normalized_1_to_16_body_landmarks = normalize_landmarks(
-        pose_landmark_1_to_16,
+    normalized_0_to_16_body_landmarks = normalize_landmarks(
+        body_landmark_0_to_16,
         shoulder_center_point,
         shoulder_width
     )
@@ -77,15 +84,15 @@ def get_normalized_holistic_landmarks(mp_detected_frame,
         shoulder_width
     ) if mp_detected_frame.left_hand_landmarks else [(0, 0)] * 21
 
-    return normalized_1_to_16_body_landmarks, normalized_right_hand_landmarks, normalized_left_hand_landmarks
+    return normalized_0_to_16_body_landmarks, normalized_right_hand_landmarks, normalized_left_hand_landmarks
 
 
-def flatten_normalized_landmarks(normalized_1_to_16_body_landmarks,
+def flatten_normalized_landmarks(normalized_0_to_16_body_landmarks,
                                  normalized_right_hand_landmarks,
                                  normalized_left_hand_landmarks):
     flatten_landmarks = []
 
-    for landmark_x, landmark_y in (normalized_1_to_16_body_landmarks +
+    for landmark_x, landmark_y in (normalized_0_to_16_body_landmarks +
                                    normalized_right_hand_landmarks +
                                    normalized_left_hand_landmarks):
         flatten_landmarks.extend([landmark_x, landmark_y])
