@@ -104,6 +104,19 @@ def get_normalized_holistic_landmarks(mp_detected_frame,
     return normalized_0_to_16_body_landmarks, normalized_right_hand_landmarks, normalized_left_hand_landmarks
 
 
+def flatten_normalized_landmarks(normalized_0_to_16_body_landmarks,
+                                 normalized_right_hand_landmarks,
+                                 normalized_left_hand_landmarks):
+    flatten_landmarks = []
+
+    for landmark_x, landmark_y in (normalized_0_to_16_body_landmarks +
+                                   normalized_right_hand_landmarks +
+                                   normalized_left_hand_landmarks):
+        flatten_landmarks.extend([landmark_x, landmark_y])
+
+    return flatten_landmarks
+
+
 def draw_custom_landmarks(original_frame, mp_detected_frame):
     filtered_pose = landmark_pb2.NormalizedLandmarkList(
         landmark=[
@@ -141,19 +154,6 @@ def draw_custom_landmarks(original_frame, mp_detected_frame):
         )
     
     return original_frame
-
-
-def flatten_normalized_landmarks(normalized_0_to_16_body_landmarks,
-                                 normalized_right_hand_landmarks,
-                                 normalized_left_hand_landmarks):
-    flatten_landmarks = []
-
-    for landmark_x, landmark_y in (normalized_0_to_16_body_landmarks +
-                                   normalized_right_hand_landmarks +
-                                   normalized_left_hand_landmarks):
-        flatten_landmarks.extend([landmark_x, landmark_y])
-
-    return flatten_landmarks
 
 
 def main():
