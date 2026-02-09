@@ -104,6 +104,45 @@ def get_normalized_holistic_landmarks(mp_detected_frame,
     return normalized_0_to_16_body_landmarks, normalized_right_hand_landmarks, normalized_left_hand_landmarks
 
 
+def draw_custom_landmarks(original_frame, mp_detected_frame):
+    filtered_pose = landmark_pb2.NormalizedLandmarkList(
+        landmark=[
+            mp_detected_frame.pose_landmarks.landmark[i]
+            for i in range(0, 17)
+        ]
+    )
+
+    filtered_connections = [
+        connection for connection in mediapipe_holistic.POSE_CONNECTIONS
+        if connection[0] < 17 and connection[1] < 17
+    ]
+
+    mediapipe_drawing.draw_landmarks(
+        original_frame,
+        filtered_pose,
+        filtered_connections,
+        landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
+    )
+
+    if mp_detected_frame.right_hand_landmarks:
+        mediapipe_drawing.draw_landmarks(
+            original_frame,
+            mp_detected_frame.right_hand_landmarks,
+            mediapipe_holistic.HAND_CONNECTIONS,
+            landmark_drawing_spec=mediapipe_drawing_styles.get_default_hand_landmarks_style()
+        )
+
+    if mp_detected_frame.left_hand_landmarks:
+        mediapipe_drawing.draw_landmarks(
+            original_frame,
+            mp_detected_frame.left_hand_landmarks,
+            mediapipe_holistic.HAND_CONNECTIONS,
+            landmark_drawing_spec=mediapipe_drawing_styles.get_default_hand_landmarks_style()
+        )
+    
+    return original_frame
+
+
 def flatten_normalized_landmarks(normalized_0_to_16_body_landmarks,
                                  normalized_right_hand_landmarks,
                                  normalized_left_hand_landmarks):
