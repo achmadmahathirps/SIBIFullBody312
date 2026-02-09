@@ -52,7 +52,32 @@ def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
         return zero_landmark_output
     else:
         return normalized_landmark_output
+    
 
+def get_normalized_holistic_landmarks(mp_detected_frame,
+                                      pose_landmark_1_to_16,
+                                      shoulder_center_point,
+                                      shoulder_width):
+    
+    normalized_1_to_16_body_landmarks = normalize_landmarks(
+        pose_landmark_1_to_16,
+        shoulder_center_point,
+        shoulder_width
+    )
+
+    normalized_right_hand_landmarks = normalize_landmarks(
+        mp_detected_frame.right_hand_landmarks.landmark,
+        shoulder_center_point,
+        shoulder_width
+    ) if mp_detected_frame.right_hand_landmarks else [(0, 0)] * 21
+
+    normalized_left_hand_landmarks = normalize_landmarks(
+        mp_detected_frame.left_hand_landmarks.landmark,
+        shoulder_center_point,
+        shoulder_width
+    ) if mp_detected_frame.left_hand_landmarks else [(0, 0)] * 21
+
+    return normalized_1_to_16_body_landmarks, normalized_right_hand_landmarks, normalized_left_hand_landmarks
 
 def main():
     capture = opencv.VideoCapture(1)
