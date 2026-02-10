@@ -191,6 +191,9 @@ def main():
                 continue
 
             flatten_landmarks, original_frame = extract_landmarks_from_original_frame(original_frame)
+            
+            if flatten_landmarks is None:
+                continue
 
             print(flatten_landmarks)
 
