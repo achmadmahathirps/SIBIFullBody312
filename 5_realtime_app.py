@@ -39,20 +39,17 @@ def euclidean_distance(pointA, pointB):
 
 
 def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
-    zero_landmark_output = [(0, 0)] * len(landmarks)
-    normalized_landmark_output = [
-        (
-            (landmark_point.x - shoulder_center_point[0]) / shoulder_width,
-            (landmark_point.y - shoulder_center_point[1]) / shoulder_width
-        )
-        for landmark_point in landmarks
-    ]
-
     if not landmarks or shoulder_width == 0:
-        return zero_landmark_output
-    else:
-        return normalized_landmark_output
-    
+        return [(0.0, 0.0)] * (len(landmarks) if landmarks else 0)
+
+    return [
+        (
+            (lm.x - shoulder_center_point[0]) / shoulder_width,
+            (lm.y - shoulder_center_point[1]) / shoulder_width
+        )
+        for lm in landmarks
+    ]
+ 
 
 def get_body_reference_points(mp_detected_frame):
     if not mp_detected_frame.pose_landmarks:
@@ -118,24 +115,25 @@ def flatten_normalized_landmarks(normalized_0_to_16_body_landmarks,
 
 
 def draw_custom_landmarks(original_frame, mp_detected_frame):
-    filtered_pose = landmark_pb2.NormalizedLandmarkList(
-        landmark=[
-            mp_detected_frame.pose_landmarks.landmark[i]
-            for i in range(0, 17)
+    if mp_detected_frame.pose_landmarks:
+        filtered_pose = landmark_pb2.NormalizedLandmarkList(
+            landmark=[
+                mp_detected_frame.pose_landmarks.landmark[i]
+                for i in range(0, 17)
+            ]
+        )
+
+        filtered_connections = [
+            connection for connection in mediapipe_holistic.POSE_CONNECTIONS
+            if connection[0] < 17 and connection[1] < 17
         ]
-    )
 
-    filtered_connections = [
-        connection for connection in mediapipe_holistic.POSE_CONNECTIONS
-        if connection[0] < 17 and connection[1] < 17
-    ]
-
-    mediapipe_drawing.draw_landmarks(
-        original_frame,
-        filtered_pose,
-        filtered_connections,
-        landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
-    )
+        mediapipe_drawing.draw_landmarks(
+            original_frame,
+            filtered_pose,
+            filtered_connections,
+            landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
+        )
 
     if mp_detected_frame.right_hand_landmarks:
         mediapipe_drawing.draw_landmarks(
@@ -156,8 +154,35 @@ def draw_custom_landmarks(original_frame, mp_detected_frame):
     return original_frame
 
 
+def extract_landmarks_from_original_frame(original_frame):
+    mp_detected_frame, original_frame = process_frame_with_holistic(original_frame)
+
+    body_landmark_0_to_16, shoulder_center_point, shoulder_width = get_body_reference_points(mp_detected_frame)
+
+    if body_landmark_0_to_16 is None:
+        return None, original_frame
+    
+    normalized_0_to_16_body_landmarks, normalized_right_hand_landmarks, normalized_left_hand_landmarks = get_normalized_holistic_landmarks(
+        mp_detected_frame,
+        body_landmark_0_to_16,
+        shoulder_center_point,
+        shoulder_width
+    )
+
+    flatten_landmarks = flatten_normalized_landmarks(
+        normalized_0_to_16_body_landmarks,
+        normalized_right_hand_landmarks,
+        normalized_left_hand_landmarks
+    )
+
+    original_frame = draw_custom_landmarks(original_frame, mp_detected_frame)
+
+    return flatten_landmarks, original_frame
+
+
+
 def main():
-    capture = opencv.VideoCapture(1)
+    capture = opencv.VideoCapture(0)
     with holistic :
         while capture.isOpened():
             success, original_frame = capture.read()
@@ -165,19 +190,15 @@ def main():
                 print("Ignoring empty camera frame.")
                 continue
 
-            mp_detected_frame, original_frame = process_frame_with_holistic(original_frame)
+            flatten_landmarks, original_frame = extract_landmarks_from_original_frame(original_frame)
 
-            mediapipe_drawing.draw_landmarks(
-                original_frame,
-                mp_detected_frame.pose_landmarks,
-                mediapipe_holistic.POSE_CONNECTIONS,
-                landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
-            )
+            print(flatten_landmarks)
 
             opencv.imshow('MediaPipe Holistic', opencv.flip(original_frame, 1))
             if opencv.waitKey(5) & 0xFF == 27:
                 break
     capture.release()
+    opencv.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
