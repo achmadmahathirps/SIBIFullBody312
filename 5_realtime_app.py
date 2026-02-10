@@ -49,7 +49,7 @@ def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
         )
         for lm in landmarks
     ]
- 
+
 
 def get_body_reference_points(mp_detected_frame):
     if not mp_detected_frame.pose_landmarks:
