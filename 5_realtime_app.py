@@ -1,6 +1,6 @@
 import time
-import cv2 as opencv
 import pandas
+import cv2 as opencv
 import mediapipe
 from pathlib import Path
 from mediapipe.framework.formats import landmark_pb2
@@ -9,6 +9,11 @@ from mediapipe.framework.formats import landmark_pb2
 mediapipe_holistic = mediapipe.solutions.holistic
 mediapipe_drawing = mediapipe.solutions.drawing_utils
 mediapipe_drawing_styles = mediapipe.solutions.drawing_styles
+
+
+# Distance and landmark normalization
+def calculate_distance(pointA, pointB):
+    return ((pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2) ** 0.5
 
 
 def main():
@@ -27,7 +32,7 @@ def main():
             if not success:
                 print("Ignoring empty camera frame.")
                 continue
-
+            
             frame.flags.writeable = False
             frame = opencv.cvtColor(frame, opencv.COLOR_BGR2RGB)
             results = holistic.process(frame)
@@ -41,7 +46,7 @@ def main():
                 mediapipe_holistic.POSE_CONNECTIONS,
                 landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
             )
-
+            
             opencv.imshow('MediaPipe Holistic', opencv.flip(frame, 1))
             if opencv.waitKey(5) & 0xFF == 27:
                 break
