@@ -70,6 +70,30 @@ def flatten_normalized_landmarks(normalized_custom_pose,
     return extracted_frame_landmarks
 
 
+# Get pose landmarks and shoulder reference points
+def get_pose_reference_points(detection_results):
+    if not detection_results.pose_landmarks:
+        return None, None, None
+
+    pose_landmark_1_to_16 = detection_results.pose_landmarks.landmark[:17]
+
+    left_shoulder = detection_results.pose_landmarks.landmark[
+        mediapipe_holistic.PoseLandmark.LEFT_SHOULDER
+    ]
+    right_shoulder = detection_results.pose_landmarks.landmark[
+        mediapipe_holistic.PoseLandmark.RIGHT_SHOULDER
+    ]
+
+    shoulder_center_point = (
+        (left_shoulder.x + right_shoulder.x) / 2,
+        (left_shoulder.y + right_shoulder.y) / 2
+    )
+
+    shoulder_width = euclidean_distance(left_shoulder, right_shoulder)
+
+    return pose_landmark_1_to_16, shoulder_center_point, shoulder_width
+
+
 def main():
     capture = opencv.VideoCapture(0)
     with mediapipe_holistic.Holistic(
