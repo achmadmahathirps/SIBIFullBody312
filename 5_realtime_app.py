@@ -56,6 +56,20 @@ def get_normalized_pose_and_hands(detection_results,
     return normalized_custom_pose, normalized_right_hand, normalized_left_hand
 
 
+# Flatten normalized landmarks into a single list
+def flatten_normalized_landmarks(normalized_custom_pose,
+                                 normalized_right_hand,
+                                 normalized_left_hand):
+    extracted_frame_landmarks = []
+
+    for landmark_x, landmark_y in (
+        normalized_custom_pose + normalized_right_hand + normalized_left_hand
+    ):
+        extracted_frame_landmarks.extend([landmark_x, landmark_y])
+
+    return extracted_frame_landmarks
+
+
 def main():
     capture = opencv.VideoCapture(0)
     with mediapipe_holistic.Holistic(
