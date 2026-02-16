@@ -12,7 +12,7 @@ mediapipe_drawing_styles = mediapipe.solutions.drawing_styles
 
 
 # Distance and landmark normalization
-def calculate_distance(pointA, pointB):
+def euclidean_distance(pointA, pointB):
     return ((pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2) ** 0.5
 
 
@@ -28,6 +28,33 @@ def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
         )
         for landmark_point in landmarks
     ]
+    
+
+# Normalize pose and hands using should-based coordinates
+def get_normalized_pose_and_hands(detection_results,
+                                  pose_landmark_1_to_16,
+                                  shoulder_center_point,
+                                  shoulder_width):
+    normalized_custom_pose = normalize_landmarks(
+        pose_landmark_1_to_16,
+        shoulder_center_point,
+        shoulder_width
+    )
+
+    normalized_right_hand = normalize_landmarks(
+        detection_results.right_hand_landmarks.landmark,
+        shoulder_center_point,
+        shoulder_width
+    ) if detection_results.right_hand_landmarks else [(0, 0)] * 21
+
+    normalized_left_hand = normalize_landmarks(
+        detection_results.left_hand_landmarks.landmark,
+        shoulder_center_point,
+        shoulder_width
+    ) if detection_results.left_hand_landmarks else [(0, 0)] * 21
+
+    return normalized_custom_pose, normalized_right_hand, normalized_left_hand
+
 
 def main():
     capture = opencv.VideoCapture(0)
