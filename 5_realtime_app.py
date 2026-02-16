@@ -94,6 +94,48 @@ def get_pose_reference_points(detection_results):
     return pose_landmark_1_to_16, shoulder_center_point, shoulder_width
 
 
+def draw_pose_and_hands_on_frame(output_frame, detection_results):
+
+    # Filter pose landmarks to 0–16 (upper body)
+    filtered_pose = landmark_pb2.NormalizedLandmarkList(
+        landmark=[detection_results.pose_landmarks.landmark[i] for i in range(17)]
+    )
+
+    filtered_connections = [
+        connection
+        for connection in mediapipe_holistic.POSE_CONNECTIONS
+        if connection[0] < 17 and connection[1] < 17
+    ]
+
+    # Draw pose
+    mediapipe_drawing.draw_landmarks(
+        output_frame,
+        filtered_pose,
+        filtered_connections,
+        landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
+    )
+
+    # Draw right hand
+    if detection_results.right_hand_landmarks:
+        mediapipe_drawing.draw_landmarks(
+            output_frame,
+            detection_results.right_hand_landmarks,
+            mediapipe_holistic.HAND_CONNECTIONS,
+            landmark_drawing_spec=mediapipe_drawing_styles.get_default_hand_landmarks_style()
+        )
+
+    # Draw left hand
+    if detection_results.left_hand_landmarks:
+        mediapipe_drawing.draw_landmarks(
+            output_frame,
+            detection_results.left_hand_landmarks,
+            mediapipe_holistic.HAND_CONNECTIONS,
+            landmark_drawing_spec=mediapipe_drawing_styles.get_default_hand_landmarks_style()
+        )
+
+    return output_frame
+
+
 def main():
     capture = opencv.VideoCapture(0)
     with mediapipe_holistic.Holistic(
