@@ -16,6 +16,19 @@ def calculate_distance(pointA, pointB):
     return ((pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2) ** 0.5
 
 
+# Normalize landmarks based on the distance between the shoulders
+def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
+    if not landmarks or shoulder_width == 0:
+        return [(0, 0)] * len(landmarks)
+
+    return [
+        (
+            (landmark_point.x - shoulder_center_point[0]) / shoulder_width,
+            (landmark_point.y - shoulder_center_point[1]) / shoulder_width
+        )
+        for landmark_point in landmarks
+    ]
+
 def main():
     capture = opencv.VideoCapture(0)
     with mediapipe_holistic.Holistic(
