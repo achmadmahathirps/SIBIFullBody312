@@ -138,6 +138,10 @@ def draw_pose_and_hands_on_frame(output_frame, detection_results):
 
 def main():
     capture = opencv.VideoCapture(0)
+    if not capture.isOpened():
+        print("[ERROR] Cannot open webcam (VideoCapture(0) failed).")
+        return
+    
     with mediapipe_holistic.Holistic(
         static_image_mode=False,
         model_complexity=0,
@@ -153,25 +157,43 @@ def main():
                 print("Ignoring empty camera frame.")
                 continue
             
+            # Mediapipe Holistic processes
             frame.flags.writeable = False
             frame = opencv.cvtColor(frame, opencv.COLOR_BGR2RGB)
             results = holistic.process(frame)
-
             frame.flags.writeable = True
             frame = opencv.cvtColor(frame, opencv.COLOR_RGB2BGR)
-
-            mediapipe_drawing.draw_landmarks(
-                frame,
-                results.pose_landmarks,
-                mediapipe_holistic.POSE_CONNECTIONS,
-                landmark_drawing_spec=mediapipe_drawing_styles.get_default_pose_landmarks_style()
+            
+            # Get pose reference points
+            pose_landmark_1_to_16, shoulder_center_point, shoulder_width = get_pose_reference_points(results)
+            
+            if pose_landmark_1_to_16 is None:
+                opencv.imshow('MediaPipe Holistic', opencv.flip(frame, 1))
+                if opencv.waitKey(5) & 0xFF == 27:
+                    break
+                continue
+            
+            normalized_custom_pose, normalized_right_hand, normalized_left_hand = get_normalized_pose_and_hands(
+                results,
+                pose_landmark_1_to_16,
+                shoulder_center_point,
+                shoulder_width
             )
+            
+            extracted_frame_landmarks = flatten_normalized_landmarks(
+                normalized_custom_pose,
+                normalized_right_hand,
+                normalized_left_hand
+            )
+            
+            frame = draw_pose_and_hands_on_frame(frame, results)
             
             opencv.imshow('MediaPipe Holistic', opencv.flip(frame, 1))
             if opencv.waitKey(5) & 0xFF == 27:
                 break
-    capture.release()
-    opencv.destroyAllWindows()
+            
+        capture.release()
+        opencv.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
