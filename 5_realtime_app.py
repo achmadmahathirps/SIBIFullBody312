@@ -1,9 +1,123 @@
 import time
 import pandas
+import numpy as np
 import cv2 as opencv
-import mediapipe
+from collections import deque
 from pathlib import Path
+
+import mediapipe
 from mediapipe.framework.formats import landmark_pb2
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class BiLSTMClassifier(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes, dropout=0.2):
+        super().__init__()
+        self.lstm = nn.LSTM(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=True,
+            dropout=dropout if num_layers > 1 else 0.0
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_size * 2, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, num_classes)
+        )
+
+    def forward(self, X, lengths):
+        out, _ = self.lstm(X)  # out: [B, T, 2*hidden]
+        B, T, D = out.shape
+
+        # mask padding positions so mean pooling uses only valid frames
+        mask = torch.arange(T, device=out.device).unsqueeze(0) < lengths.unsqueeze(1)
+        mask_f = mask.float().unsqueeze(-1)
+
+        summed = (out * mask_f).sum(dim=1)
+        denom = lengths.clamp(min=1).unsqueeze(1).float()
+        feat = summed / denom  # mean over valid timesteps
+
+        logits = self.classifier(feat)
+        return logits
+    
+    
+class LSTMRealtimeInferencer:
+    """
+    Maintains a rolling buffer of per-frame features and runs BiLSTM inference.
+    """
+    def __init__(self, ckpt_path: str, device: str | None = None, min_frames: int = 10):
+        self.device = torch.device(device if device else ("cuda" if torch.cuda.is_available() else "cpu"))
+        ckpt = torch.load(ckpt_path, map_location=self.device)
+
+        self.pad_len = int(ckpt["pad_len"])
+        self.n_features = int(ckpt["n_features"])
+        self.id_to_label = ckpt["id_to_label"]
+
+        hidden_size = int(ckpt["hidden_size"])
+        num_layers = int(ckpt["num_layers"])
+        dropout = float(ckpt["dropout"])
+        num_classes = len(self.id_to_label)
+
+        self.model = BiLSTMClassifier(
+            input_size=self.n_features,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            num_classes=num_classes,
+            dropout=dropout
+        ).to(self.device)
+
+        self.model.load_state_dict(ckpt["state_dict"])
+        self.model.eval()
+
+        self.buffer = deque(maxlen=self.pad_len)
+        self.min_frames = min_frames
+
+        # optional smoothing (EMA over probabilities)
+        self.ema_probs = None
+        self.ema_alpha = 0.25  # 0..1 higher = less smoothing
+
+    def push_frame(self, feature_118: list[float] | np.ndarray):
+        arr = np.asarray(feature_118, dtype=np.float32)
+        if arr.shape[0] != self.n_features:
+            raise ValueError(f"Expected feature dim {self.n_features}, got {arr.shape[0]}")
+        self.buffer.append(arr)
+
+    @torch.no_grad()
+    def predict(self):
+        """
+        Returns (label, confidence, probs) or (None, 0.0, None) if not enough frames yet.
+        """
+        length = len(self.buffer)
+        if length < self.min_frames:
+            return None, 0.0, None
+
+        # build [1, pad_len, n_features]
+        X = np.zeros((self.pad_len, self.n_features), dtype=np.float32)
+        X[:length, :] = np.stack(list(self.buffer), axis=0)
+
+        X_t = torch.from_numpy(X).unsqueeze(0).to(self.device)          # [1, 83, 118]
+        lengths_t = torch.tensor([length], dtype=torch.long).to(self.device)
+
+        logits = self.model(X_t, lengths_t)                             # [1, num_classes]
+        probs = F.softmax(logits, dim=1).squeeze(0).detach().cpu().numpy()
+
+        # EMA smoothing to reduce flicker
+        if self.ema_probs is None:
+            self.ema_probs = probs
+        else:
+            self.ema_probs = self.ema_alpha * probs + (1 - self.ema_alpha) * self.ema_probs
+
+        pred_id = int(np.argmax(self.ema_probs))
+        conf = float(self.ema_probs[pred_id])
+        label = self.id_to_label[pred_id]
+        return label, conf, self.ema_probs
+
 
 # Initialize MediaPipe Holistic model
 mediapipe_holistic = mediapipe.solutions.holistic
@@ -409,7 +523,7 @@ def draw_normalized_stickman(normalized_custom_pose,
 
 
 def main():
-    capture = opencv.VideoCapture(0)
+    capture = opencv.VideoCapture(1)
     if not capture.isOpened():
         print("[ERROR] Cannot open webcam (VideoCapture(0) failed).")
         return
@@ -423,8 +537,11 @@ def main():
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5,
     ) as holistic:
+        infer = LSTMRealtimeInferencer("trained_model/best_lstm.pt", min_frames=10)
+        
         while capture.isOpened():
             success, frame = capture.read()
+            frame = opencv.flip(frame, 1)  # mirror horizontally for natural webcam view
             if not success:
                 print("Ignoring empty camera frame.")
                 continue
@@ -458,6 +575,25 @@ def main():
                 normalized_left_hand
             )
             
+            # push current frame feature into sequence buffer
+            infer.push_frame(extracted_frame_landmarks)
+
+            # run prediction (you can also do this every N frames to reduce CPU load)
+            label, conf, _ = infer.predict()
+
+            if label is not None:
+                # draw prediction
+                opencv.putText(
+                    frame,
+                    f"{label} ({conf*100:.1f}%)",
+                    (10, 40),
+                    opencv.FONT_HERSHEY_SIMPLEX,
+                    1.0,
+                    (0, 255, 0),
+                    2,
+                    opencv.LINE_AA
+                )
+            
             frame = draw_pose_and_hands_on_frame(frame, results)
             
             # Stickman with overlays
@@ -467,7 +603,7 @@ def main():
                 normalized_left_hand,
             )
             
-            opencv.imshow('MediaPipe Holistic', opencv.flip(frame, 1))
+            opencv.imshow('MediaPipe Holistic', frame)
             opencv.imshow('Stickman Frame', stickman_frame)
             if opencv.waitKey(5) & 0xFF == 27:
                 break
