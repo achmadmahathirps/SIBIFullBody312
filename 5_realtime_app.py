@@ -30,7 +30,7 @@ def normalize_landmarks(landmarks, shoulder_center_point, shoulder_width):
     ]
     
 
-# Normalize pose and hands using should-based coordinates
+# Normalize pose and hands using shoulder-based coordinates
 def get_normalized_pose_and_hands(detection_results,
                                   pose_landmark_1_to_16,
                                   shoulder_center_point,
