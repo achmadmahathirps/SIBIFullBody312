@@ -138,47 +138,7 @@ def draw_pose_and_hands_on_frame(output_frame, detection_results):
 
 def draw_normalized_stickman(normalized_custom_pose,
                              normalized_right_hand,
-                             normalized_left_hand,
-                             
-                             canvas_size=(550, 550),
-                             scale=100,
-
-                             # axes / grid / ticks
-                             show_center_cross=True,
-                             show_grid=True,
-                             grid_interval=0.5,     # in normalized units
-                             show_ticks=True,
-                             tick_interval=1.0,     # in normalized units
-                             tick_size_pixels=5,
-
-                             # pose colors
-                             pose_dot_color=(255, 255, 255),
-                             pose_line_color=(255, 255, 255),
-                             pose_text_color=(255, 255, 255),
-
-                             # right hand colors (dots/lines)
-                             right_dot_color=(200, 200, 200),
-                             right_line_color=(200, 200, 200),
-
-                             # left hand colors (dots/lines)
-                             left_dot_color=(200, 200, 200),
-                             left_line_color=(200, 200, 200),
-
-                             # hand label colors (near dots + bottom lists)
-                             right_label_color=(0, 255, 0),      # green
-                             left_label_color=(0, 165, 255),     # orange-ish
-
-                             # pose text controls
-                             show_pose_coords=True,
-                             show_pose_numbers=True,
-
-                             # hand list controls (bottom)
-                             show_hand_lists=True,
-                             hand_font_scale=0.25,
-
-                             # hand labels near dots
-                             show_hand_labels=True,
-                             hand_label_font_scale=0.25):
+                             normalized_left_hand):
     """
     Stickman visualization with:
       - Pose dots + P{i} labels + coords near pose points
@@ -188,7 +148,47 @@ def draw_normalized_stickman(normalized_custom_pose,
       - Axes: X red horizontal, Y green vertical
       - Tick marks and optional faint grid in normalized space
     """
+    
+    canvas_size=(550, 550)
+    scale=100
 
+    # axes / grid / ticks
+    show_center_cross=True
+    show_grid=True
+    grid_interval=0.5     # in normalized units
+    show_ticks=True
+    tick_interval=1.0     # in normalized units
+    tick_size_pixels=5
+
+    # pose colors
+    pose_dot_color=(255, 255, 255)
+    pose_line_color=(255, 255, 255)
+    pose_text_color=(255, 255, 255)
+
+    # right hand colors (dots/lines)
+    right_dot_color=(200, 200, 200)
+    right_line_color=(200, 200, 200)
+
+    # left hand colors (dots/lines)
+    left_dot_color=(200, 200, 200)
+    left_line_color=(200, 200, 200)
+
+    # hand label colors (near dots + bottom lists)
+    right_label_color=(0, 255, 0)      # green
+    left_label_color=(0, 165, 255)     # orange-ish
+
+    # pose text controls
+    show_pose_coords=True
+    show_pose_numbers=True
+
+    # hand list controls (bottom)
+    show_hand_lists=True
+    hand_font_scale=0.25
+
+    # hand labels near dots
+    show_hand_labels=True
+    hand_label_font_scale=0.25
+    
     h, w = canvas_size
     stickman_frame = opencv.UMat(h, w, opencv.CV_8UC3).get()
     stickman_frame[:] = 0
